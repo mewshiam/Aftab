@@ -113,7 +113,7 @@ fn guard<T>(f: impl FnOnce() -> Result<T, AftabError>) -> Result<T, AftabError> 
 
 // ─── Version / strings / text utilities ────────────────────────────────────
 
-/// FFI: core version, e.g. `"1.0.0"`. Static storage; do not free.
+/// FFI: core version, e.g. `"0.1.0"`. Static storage; do not free.
 #[no_mangle]
 pub extern "C" fn aftab_version() -> *const c_char {
     concat!(env!("CARGO_PKG_VERSION"), "\0").as_ptr() as *const c_char

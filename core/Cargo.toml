@@ -1,6 +1,6 @@
 [package]
 name = "aftab-core"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 rust-version = "1.75"
 description = "Aftab Media (آفتاب مدیا) cross-platform core: models, Persian normalization, search, CCloud-compatible provider, persistence, downloads, URL safety, and the C-ABI FFI bridge"

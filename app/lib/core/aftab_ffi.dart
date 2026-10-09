@@ -280,7 +280,7 @@ class AftabFfi {
 
   final AftabRaw _r = AftabRaw.instance;
 
-  /// Library version, e.g. `1.0.0`.
+  /// Library version, e.g. `0.1.0`.
   ///
   /// The core returns static storage — borrowed, never freed.
   String version() => _borrowString(_r.aftab_version());

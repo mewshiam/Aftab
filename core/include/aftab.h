@@ -61,7 +61,7 @@ extern "C" {
 
 /* ── Version & errors ───────────────────────────────────────────────────── */
 
-/* Library version, e.g. "1.0.0". Static storage; do not free. */
+/* Library version, e.g. "0.1.0". Static storage; do not free. */
 const char *aftab_version(void);
 
 /* Error code of the last failure on this thread (AFTAB_OK when none). */
