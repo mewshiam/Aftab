@@ -15,6 +15,11 @@
 /// file's `analysis_options.yaml`.
 library aftab_ffi;
 
+// Raw C bindings intentionally expose C-style function-typedef fields on
+// the public AftabRaw surface; the private-type-in-public-API lint does
+// not apply to that design.
+// ignore_for_file: library_private_types_in_public_api
+
 import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
