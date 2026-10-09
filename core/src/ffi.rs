@@ -650,13 +650,16 @@ pub unsafe extern "C" fn aftab_download_file(
     match guard(|| {
         let u = read_str(url)?;
         let d = read_str(dest_path)?;
-        let path = std::path::Path::new(d);
-        download::validate_dest(path)?;
+        // Security before filesystem: an unsafe URL must fail with
+        // UNSAFE_URL regardless of whether the destination is writable.
         let policy = if allow_private != 0 {
             urlsafe::Policy::TRUSTED
         } else {
             urlsafe::Policy::STRICT
         };
+        urlsafe::check_url(u, policy)?;
+        let path = std::path::Path::new(d);
+        download::validate_dest(path)?;
         let http = HttpClient::new(Duration::from_secs(120));
         download::download_to_file(&http, u, path, policy)
     }) {
@@ -885,7 +888,10 @@ mod tests {
     #[test]
     fn download_over_ffi_rejects_private_by_default() {
         let url = c("http://127.0.0.1:9/x.mp4");
-        let dest = c("/tmp/aftab-ffi-never.mp4");
+        let dest = c(std::env::temp_dir()
+            .join("aftab-ffi-never.mp4")
+            .to_str()
+            .unwrap());
         assert_eq!(
             unsafe { aftab_download_file(url.as_ptr(), dest.as_ptr(), 0) },
             -1

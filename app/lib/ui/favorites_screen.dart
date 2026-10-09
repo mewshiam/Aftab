@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../core/aftab_ffi.dart';
 import '../core/models.dart';
 import '../core/store.dart';
-import 'catalog_screen.dart' show AftabAppBar;
+import 'home_screen.dart' show AftabAppBar;
 import 'detail_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {

@@ -162,21 +162,19 @@ mod tests {
     #[test]
     fn unsafe_urls_are_refused_before_any_io() {
         let http = HttpClient::new(Duration::from_secs(5));
-        let err = Download::new(
-            &http,
-            "http://127.0.0.1:1/x.mp4",
-            Path::new("/tmp/never.mp4"),
-        )
-        .err()
-        .unwrap();
+        let dest = std::env::temp_dir().join("aftab-never.mp4");
+        let err = Download::new(&http, "http://127.0.0.1:1/x.mp4", &dest)
+            .err()
+            .unwrap();
         assert_eq!(err.code(), codes::UNSAFE_URL);
-        assert!(!Path::new("/tmp/never.mp4.part").exists());
+        assert!(!dest.with_extension("mp4.part").exists());
     }
 
     #[test]
     fn bad_schemes_are_refused() {
         let http = HttpClient::new(Duration::from_secs(5));
-        let err = Download::new(&http, "ftp://cdn.example/x.mp4", Path::new("/tmp/x.mp4"))
+        let dest = std::env::temp_dir().join("aftab-scheme.mp4");
+        let err = Download::new(&http, "ftp://cdn.example/x.mp4", &dest)
             .err()
             .unwrap();
         assert_eq!(err.code(), codes::UNSUPPORTED_SCHEME);
@@ -185,20 +183,23 @@ mod tests {
     #[test]
     fn part_path_appends_suffix() {
         let http = HttpClient::new(Duration::from_secs(5));
+        let dest = std::env::temp_dir().join("aftab-movie.mp4");
         let d = Download::with_policy(
             &http,
             "http://example.com/v.mp4",
-            Path::new("/tmp/aftab-movie.mp4"),
+            &dest,
             urlsafe::Policy::TRUSTED,
         )
         .unwrap();
-        assert_eq!(d.part_path(), PathBuf::from("/tmp/aftab-movie.mp4.part"));
+        assert_eq!(d.part_path(), dest.with_extension("mp4.part"));
     }
 
     #[test]
     fn validate_dest_rejects_missing_directory() {
-        assert!(validate_dest(Path::new("/definitely/not/here/file.mp4")).is_err());
-        assert!(validate_dest(Path::new("/tmp/ok.mp4")).is_ok());
+        let missing = std::env::temp_dir().join("aftab-definitely-missing-dir/file.mp4");
+        assert!(validate_dest(&missing).is_err());
+        let present = std::env::temp_dir().join("ok.mp4");
+        assert!(validate_dest(&present).is_ok());
         assert!(validate_dest(Path::new("")).is_err());
     }
 
