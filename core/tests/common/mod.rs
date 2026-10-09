@@ -123,6 +123,28 @@ where
     }
 }
 
+/// Spawn a "server down": accepts connections, then closes them without
+/// answering. Deterministic on every platform — unlike bind-then-drop port
+/// games, which Windows can immediately re-assign to the next listener.
+pub fn spawn_refusing_server() -> TestServer {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind refusing server");
+    let addr = listener.local_addr().expect("local addr");
+    let base = format!("http://{addr}");
+    thread::spawn(move || {
+        for stream in listener.incoming() {
+            let Ok(stream) = stream else { break };
+            // Answer nothing; kill the socket immediately.
+            let _ = stream.shutdown(std::net::Shutdown::Both);
+        }
+    });
+    thread::sleep(Duration::from_millis(20));
+    TestServer {
+        addr: addr.to_string(),
+        base,
+        hits: Arc::new(Mutex::new(Vec::new())),
+    }
+}
+
 fn serve_one<F>(stream: TcpStream, handler: F, hits: &Mutex<Vec<String>>) -> std::io::Result<()>
 where
     F: Fn(&Request) -> Resp,

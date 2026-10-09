@@ -13,7 +13,7 @@ use aftab::error::codes;
 use aftab::model::FilterType;
 use aftab::provider::{Origin, Provider};
 
-use common::{spawn_server, Resp};
+use common::{spawn_refusing_server, spawn_server, Resp};
 
 fn movie_json(id: i64, title: &str) -> String {
     format!(
@@ -101,15 +101,12 @@ fn failover_to_helper_on_server_error() {
 fn failover_skips_a_dead_helper_and_uses_the_next() {
     let primary = spawn_server(|_| Resp::error());
 
-    // A port with nothing listening → instant connection refused.
-    let dead = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let dead_addr = dead.local_addr().unwrap();
-    drop(dead);
-    let dead_url = format!("http://{dead_addr}");
+    // A "server down" that deterministically refuses on every platform.
+    let dead = spawn_refusing_server();
 
     let helper2 = spawn_server(|_| Resp::json(movies_body()));
 
-    let p = Provider::new(&primary.base, "KEY", &[&dead_url, &helper2.base]).unwrap();
+    let p = Provider::new(&primary.base, "KEY", &[&dead.base, &helper2.base]).unwrap();
     let sourced = p.movies(0, FilterType::Default, 0).unwrap();
 
     assert_eq!(sourced.origin, Origin::Helper(1), "dead helper is skipped");
@@ -118,15 +115,11 @@ fn failover_skips_a_dead_helper_and_uses_the_next() {
 
 #[test]
 fn all_servers_unreachable_is_a_network_error_with_context() {
-    // Two ports with nothing listening.
-    let d1 = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let a1 = d1.local_addr().unwrap();
-    drop(d1);
-    let d2 = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
-    let a2 = d2.local_addr().unwrap();
-    drop(d2);
+    // Two refusing servers — deterministic on every platform.
+    let d1 = spawn_refusing_server();
+    let d2 = spawn_refusing_server();
 
-    let p = Provider::new(&format!("http://{a1}"), "KEY", &[&format!("http://{a2}")]).unwrap();
+    let p = Provider::new(&d1.base, "KEY", &[&d2.base]).unwrap();
     let err = p.genres().err().unwrap();
 
     assert_eq!(err.code(), codes::NETWORK);
