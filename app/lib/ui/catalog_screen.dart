@@ -1,6 +1,8 @@
 /// The catalog grid: movies or series, with sort control and infinite
 /// scroll pagination.
 
+library aftab_catalog_screen;
+
 import 'package:flutter/material.dart';
 
 import '../core/aftab_ffi.dart';

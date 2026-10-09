@@ -3,6 +3,8 @@
 /// defaulted missing fields before serializing, but these parsers stay
 /// defensive because catalog data is untrusted input.
 
+library aftab_models;
+
 class Source {
   const Source({
     required this.id,

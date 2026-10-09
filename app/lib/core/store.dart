@@ -2,6 +2,8 @@
 /// store. All calls run in `Isolate.run` with a fresh store handle — the
 /// atomic-write design in `core/src/store.rs` makes that safe.
 
+library aftab_store;
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';

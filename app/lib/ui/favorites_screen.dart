@@ -1,5 +1,7 @@
 /// Favorites list, newest first, with quick removal.
 
+library aftab_favorites_screen;
+
 import 'package:flutter/material.dart';
 
 import '../core/aftab_ffi.dart';
@@ -62,7 +64,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AftabAppBar(title: 'علاقه‌مندی‌ها'),
+      appBar: const AftabAppBar(title: 'علاقه‌مندی‌ها'),
       body: _buildBody(theme),
     );
   }

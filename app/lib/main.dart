@@ -4,6 +4,8 @@
 /// user-visible string is Persian. On Android TV (large screen, remote
 /// navigation) the TV home is used; on phones and desktop the tabbed home.
 
+library aftab_media_app;
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';

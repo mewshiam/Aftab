@@ -1,5 +1,7 @@
 /// The tabbed home: فیلم‌ها / سریال‌ها / جست‌وجو / علاقه‌مندی‌ها.
 
+library aftab_home_screen;
+
 import 'package:flutter/material.dart';
 
 import 'catalog_screen.dart';

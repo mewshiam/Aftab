@@ -1,6 +1,8 @@
 /// Search: provider full-text search plus local Persian-aware re-ranking
 /// of the current results while the query is refined.
 
+library aftab_search_screen;
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -86,7 +88,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AftabAppBar(title: 'جست‌وجو'),
+      appBar: const AftabAppBar(title: 'جست‌وجو'),
       body: Column(
         children: <Widget>[
           Padding(

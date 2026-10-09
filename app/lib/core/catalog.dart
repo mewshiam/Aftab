@@ -6,6 +6,8 @@
 /// this both safe and simple. The UI gets futures and typed results; the
 /// blocking Rust calls never touch the platform thread.
 
+library aftab_catalog;
+
 import 'dart:convert';
 import 'dart:isolate';
 

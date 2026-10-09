@@ -5,6 +5,8 @@
 /// move inside a row, up/down move between rows). The first card gets
 /// autofocus so the TV lands somewhere sensible right after launch.
 
+library aftab_tv_home_screen;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

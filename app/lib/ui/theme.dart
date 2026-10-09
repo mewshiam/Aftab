@@ -1,5 +1,7 @@
 /// آفتاب (sun) — a Persian-first dark theme with a warm amber accent.
 
+library aftab_theme;
+
 import 'package:flutter/material.dart';
 
 class AftabTheme {

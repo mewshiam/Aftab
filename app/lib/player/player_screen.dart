@@ -1,6 +1,8 @@
 /// The player: libmpv via `media_kit`, with Persian controls, a seek bar,
 /// quality switching, and watch-progress persistence.
 
+library aftab_player_screen;
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';

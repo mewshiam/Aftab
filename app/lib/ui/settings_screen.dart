@@ -1,5 +1,7 @@
 /// Settings: server health probe, TV-mode override, core version.
 
+library aftab_settings_screen;
+
 import 'package:flutter/material.dart';
 
 import '../core/aftab_ffi.dart';
@@ -66,7 +68,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AftabAppBar(title: 'تنظیمات'),
+      appBar: const AftabAppBar(title: 'تنظیمات'),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[

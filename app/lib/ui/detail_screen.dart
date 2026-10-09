@@ -1,6 +1,8 @@
 /// Detail page: poster, metadata, favorite toggle, seasons for series,
 /// and the play button (best-quality source by default, quality picker).
 
+library aftab_detail_screen;
+
 import 'package:flutter/material.dart';
 
 import '../core/aftab_ffi.dart';
@@ -111,7 +113,7 @@ class _DetailScreenState extends State<DetailScreen> {
         child: ListView(
           shrinkWrap: true,
           children: <Widget>[
-            ListTile(title: Text('کیفیت را انتخاب کنید')),
+            const ListTile(title: Text('کیفیت را انتخاب کنید')),
             for (final s in sources)
               ListTile(
                 leading: const Icon(Icons.high_quality_outlined),
@@ -124,7 +126,7 @@ class _DetailScreenState extends State<DetailScreen> {
       ),
     );
     if (chosen == null) return;
-    if (!mounted) return;
+    if (!context.mounted) return;
     Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute<void>(
         builder: (_) => PlayerScreen(

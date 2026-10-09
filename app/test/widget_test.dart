@@ -1,5 +1,7 @@
 /// Pure-Dart smoke tests that do not require the native library.
 
+library aftab_widget_test;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
