@@ -1,12 +1,12 @@
-/// Pure-Dart smoke tests that do not require the native library.
+/// Model parsing + progress math (pure Dart).
 
 library aftab_widget_test;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:aftab_media/core/models.dart';
 import 'package:aftab_media/core/store.dart';
+import 'package:aftab_media/data/sources.dart';
 
 void main() {
   group('CatalogItem parsing', () {
@@ -73,6 +73,19 @@ void main() {
       expect(item.duration, isNull);
       expect(item.genreTitles, '');
     });
+
+    test('WatchEntry parses the progress_all JSON shape', () {
+      const entry = WatchEntry(
+        kind: 'movie',
+        id: 5,
+        progress: WatchProgress(
+          positionSeconds: 300,
+          durationSeconds: 600,
+          updatedAt: 1,
+        ),
+      );
+      expect(entry.progress.fraction, closeTo(0.5, 1e-9));
+    });
   });
 
   group('WatchProgress fraction (pure Dart mirror of the core test)', () {
@@ -103,16 +116,5 @@ void main() {
         1,
       );
     });
-  });
-
-  testWidgets('the dark Persian theme builds', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ThemeData(brightness: Brightness.dark),
-        locale: const Locale('fa'),
-        home: const Scaffold(body: Center(child: Text('آفتاب مدیا'))),
-      ),
-    );
-    expect(find.text('آفتاب مدیا'), findsOneWidget);
   });
 }

@@ -11,6 +11,7 @@ import 'dart:isolate';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../data/sources.dart';
 import 'aftab_ffi.dart';
 import 'models.dart';
 
@@ -89,12 +90,13 @@ Future<String> storePath() async {
   }
 }
 
-class AftabStore {
+class AftabStore implements StoreSource {
   const AftabStore._();
 
   static const AftabStore instance = AftabStore._();
 
   /// All favorites, newest first.
+  @override
   Future<List<Favorite>> favorites() async {
     final path = await storePath();
     return Isolate.run(() {
@@ -112,6 +114,7 @@ class AftabStore {
   }
 
   /// Add or refresh a favorite for [item].
+  @override
   Future<bool> addFavorite(CatalogItem item) async {
     final path = await storePath();
     final json = jsonEncode(Favorite(
@@ -129,6 +132,7 @@ class AftabStore {
   }
 
   /// Remove the favorite for [item]; true if it existed.
+  @override
   Future<bool> removeFavorite(CatalogItem item) async {
     final path = await storePath();
     return Isolate.run(() {
@@ -139,6 +143,7 @@ class AftabStore {
   }
 
   /// Is [item] favorited?
+  @override
   Future<bool> isFavorite(CatalogItem item) async {
     final path = await storePath();
     return Isolate.run(() {
@@ -149,6 +154,7 @@ class AftabStore {
   }
 
   /// Record playback progress.
+  @override
   Future<bool> setProgress(
       CatalogItem item, double positionSeconds, double durationSeconds) async {
     final path = await storePath();
@@ -160,6 +166,7 @@ class AftabStore {
   }
 
   /// Read playback progress; null when absent.
+  @override
   Future<WatchProgress?> progress(CatalogItem item) async {
     final path = await storePath();
     return Isolate.run(() {
@@ -175,7 +182,26 @@ class AftabStore {
     });
   }
 
+  /// Every progress entry, newest first — continue watching / history.
+  @override
+  Future<List<WatchEntry>> progressAll() async {
+    final path = await storePath();
+    return Isolate.run(() {
+      final ffi = AftabFfi.instance;
+      return ffi.withStore<List<WatchEntry>>(path, (store) {
+        final raw = ffi.progressAllJson(store);
+        final decoded = jsonDecode(raw);
+        if (decoded is! List) return const <WatchEntry>[];
+        return decoded
+            .whereType<Map<String, dynamic>>()
+            .map(WatchEntry.fromJson)
+            .toList(growable: false);
+      });
+    });
+  }
+
   /// Clear playback progress ("watched" / "start over").
+  @override
   Future<bool> clearProgress(CatalogItem item) async {
     final path = await storePath();
     return Isolate.run(() {
@@ -186,6 +212,7 @@ class AftabStore {
   }
 
   /// Write a setting.
+  @override
   Future<bool> setSetting(String name, String value) async {
     final path = await storePath();
     return Isolate.run(() {
@@ -196,6 +223,7 @@ class AftabStore {
   }
 
   /// Read a setting; null when unset.
+  @override
   Future<String?> getSetting(String name) async {
     final path = await storePath();
     return Isolate.run(() {

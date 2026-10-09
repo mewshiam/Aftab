@@ -175,6 +175,11 @@ int32_t aftab_store_set_progress(AftabStore *s, const char *kind, int64_t id,
  * Caller frees. NULL on error. */
 char *aftab_store_progress_json(AftabStore *s, const char *kind, int64_t id);
 
+/* Every progress entry, newest first, as a JSON array of
+ * {kind, id, progress:{position,duration,updated_at}} — the
+ * "continue watching" / history feed. Caller frees. NULL on error. */
+char *aftab_store_progress_all_json(AftabStore *s);
+
 /* Clear progress. 1 if it existed, 0 otherwise. */
 int32_t aftab_store_clear_progress(AftabStore *s, const char *kind,
                                    int64_t id);

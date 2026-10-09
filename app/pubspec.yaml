@@ -1,7 +1,7 @@
 name: aftab_media
 description: آفتاب مدیا — Persian-first cross-platform media app (Android, Android TV, Windows).
 publish_to: "none"
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # Localization machinery (fa-IR + en-US), pins the matching intl.
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.0
   # FFI primitives (Utf8 encode/decode helpers).
   ffi: ^2.1.0
   # libmpv playback, on every supported platform.
@@ -16,9 +20,13 @@ dependencies:
   media_kit_video: ^1.2.17
   media_kit_libs_android_video: ^1.3.6
   media_kit_libs_windows_video: ^1.0.9
-  # Where the store file and downloads live.
+  # Where the store file, image cache and downloads live.
   path_provider: ^2.1.3
   path: ^1.9.0
+  # Artwork fetches for the image cache.
+  http: ^1.2.2
+  # Material You dynamic colors (Android 12+; harmless elsewhere).
+  dynamic_color: ^1.7.0
 
 dev_dependencies:
   flutter_test:
@@ -27,5 +35,20 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/icons/
+    - assets/fonts/OFL.txt
+  fonts:
+    # Persian-first typeface (OFL) — covers both the Arabic script and
+    # Latin well, so one family keeps fa/en typography consistent.
+    - family: Vazirmatn
+      fonts:
+        - asset: assets/fonts/Vazirmatn-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Vazirmatn-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Vazirmatn-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Vazirmatn-Bold.ttf
+          weight: 700

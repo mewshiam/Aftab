@@ -1,0 +1,211 @@
+{
+  "@@locale": "fa",
+
+  "appName": "آفتاب مدیا",
+
+  "navHome": "خانه",
+  "navDiscover": "کشف",
+  "navSearch": "جست‌وجو",
+  "navLibrary": "کتابخانه",
+  "navSettings": "تنظیمات",
+  "seeAll": "مشاهدهٔ همه",
+
+  "retry": "تلاش دوباره",
+  "cancel": "انصراف",
+  "close": "بستن",
+  "ok": "باشه",
+
+  "loading": "در حال بارگذاری…",
+  "errorTitle": "ارتباط برقرار نشد",
+  "errorDetails": "خطا",
+  "offlineHint": "اتصال اینترنت یا سرورها را بررسی کنید و دوباره تلاش کنید.",
+
+  "greetingMorning": "صبح بخیر",
+  "greetingAfternoon": "روز بخیر",
+  "greetingEvening": "عصر بخیر",
+  "greetingNight": "شب بخیر",
+
+  "continueWatching": "ادامهٔ تماشا",
+  "resumeFrom": "ادامه از {duration}",
+  "@resumeFrom": {
+    "placeholders": {
+      "duration": { "type": "String"}
+    }
+  },
+
+  "featured": "منتخب آفتاب",
+  "topMovies": "فیلم‌های برتر",
+  "topSeries": "سریال‌های برتر",
+  "newMovies": "تازه‌ترین فیلم‌ها",
+  "newSeries": "تازه‌ترین سریال‌ها",
+  "browseByGenre": "مرور بر پایهٔ ژانر",
+
+  "movieLabel": "فیلم",
+  "seriesLabel": "سریال",
+  "episodeLabel": "قسمت",
+  "imdbRating": "IMDb {rating}",
+  "@imdbRating": {
+    "placeholders": {
+      "rating": { "type": "String"}
+    }
+  },
+  "watchedPercent": "{percent}٪ دیده‌شده",
+  "@watchedPercent": {
+    "placeholders": {
+      "percent": { "type": "String"}
+    }
+  },
+  "minutesLeft": "{countText} دقیقه مانده",
+  "@minutesLeft": {
+    "placeholders": {
+      "countText": { "type": "String"}
+    }
+  },
+
+  "discoverTitle": "کشف",
+  "filterAll": "همه",
+  "filterMovies": "فیلم",
+  "filterSeries": "سریال",
+  "filterGenre": "همهٔ ژانرها",
+  "sortBy": "ترتیب",
+  "sortNewest": "جدیدترین",
+  "sortYear": "بالاترین سال",
+  "sortImdb": "بهترین IMDb",
+  "noContent": "چیزی برای نمایش نیست",
+
+  "searchHint": "نام فیلم یا سریال…",
+  "searchRecent": "جست‌وجوهای اخیر",
+  "searchClearRecent": "پاک‌کردن جست‌وجوها",
+  "searchStartPrompt": "برای جست‌وجو، چیزی بنویسید",
+  "searchSearching": "در حال جست‌وجو…",
+  "searchNoResults": "نتیجه‌ای برای «{query}» یافت نشد",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": { "type": "String"}
+    }
+  },
+  "searchNoResultsHint": "املای عبارت را بررسی کنید یا عبارتی کوتاه‌تر امتحان کنید.",
+  "searchResultsCount": "{count, plural, =1{یک نتیجه} other{{countText} نتیجه}}",
+  "@searchResultsCount": {
+    "placeholders": {
+      "count": { "type": "int"},
+      "countText": { "type": "String"}
+    }
+  },
+
+  "play": "پخش",
+  "resume": "ادامهٔ تماشا",
+  "favoriteAdd": "افزودن به علاقه‌مندی‌ها",
+  "favoriteRemove": "حذف از علاقه‌مندی‌ها",
+  "download": "دانلود",
+  "downloading": "در حال دانلود…",
+  "downloadDone": "دانلود کامل شد",
+  "downloadFailed": "دانلود ناموفق بود",
+  "downloadFailedWithReason": "دانلود ناموفق بود: {reason}",
+  "@downloadFailedWithReason": {
+    "placeholders": {
+      "reason": { "type": "String"}
+    }
+  },
+  "downloadOnlyMovies": "دانلود در نسخهٔ فعلی فقط برای فیلم‌ها فعال است",
+
+  "noPlayableSource": "هیچ منبع پخشی برای این عنوان موجود نیست",
+  "noEpisodeSource": "منبعی برای این قسمت موجود نیست",
+  "noSeasons": "فصلی برای این سریال ثبت نشده است",
+  "seasonsLoadFailed": "بارگذاری فصل‌ها ناموفق بود",
+  "selectQuality": "انتخاب کیفیت",
+  "qualityUnknown": "نامشخص",
+  "seasonsTitle": "فصل‌ها",
+  "episodesCount": "{count, plural, =1{یک قسمت} other{{countText} قسمت}}",
+  "@episodesCount": {
+    "placeholders": {
+      "count": { "type": "int"},
+      "countText": { "type": "String"}
+    }
+  },
+
+  "libraryFavorites": "علاقه‌مندی‌ها",
+  "libraryContinue": "ادامهٔ تماشا",
+  "libraryDownloads": "دانلودها",
+  "favoritesEmpty": "هنوز چیزی به علاقه‌مندی‌ها اضافه نکرده‌اید",
+  "favoritesEmptyHint": "در صفحهٔ هر عنوان، دکمهٔ علاقه‌مندی را بزنید.",
+  "continueEmpty": "هنوز تماشایی را شروع نکرده‌اید",
+  "continueEmptyHint": "پخش یک فیلم یا سریال را آغاز کنید تا اینجا دیده شود.",
+  "downloadsEmpty": "هنوز چیزی دانلود نکرده‌اید",
+  "downloadsEmptyHint": "از صفحهٔ جزئیات فیلم‌ها می‌توانید برای تماشای آفلاین دانلود کنید.",
+  "clearProgress": "حذف از ادامهٔ تماشا",
+  "deleteDownload": "حذف دانلود",
+  "playDownloaded": "پخش نسخهٔ دانلودشده",
+  "downloadedBadge": "دانلودشده",
+
+  "settingsAppearance": "ظاهر",
+  "themeMode": "پوسته",
+  "themeModeSystem": "همگام با سیستم",
+  "themeModeLight": "روشن",
+  "themeModeDark": "تاریک",
+  "dynamicColors": "رنگ پویا (Material You)",
+  "dynamicColorsHint": "رنگ‌ها از کاغذدیواری اندروید ۱۲+ گرفته می‌شوند.",
+  "language": "زبان",
+  "languageFa": "فارسی",
+  "languageEn": "English",
+  "settingsPlayback": "پخش",
+  "autoResume": "ادامهٔ خودکار تماشا",
+  "autoResumeHint": "پخش از آخرین جای تماشا ادامه می‌یابد.",
+  "tvMode": "رابط تلویزیون",
+  "tvModeHint": "ناوبری فوکوس‌محور برای کنترل از راه دور",
+  "settingsServers": "سرورها",
+  "serversChecking": "در حال بررسی سرورها…",
+  "serverReachable": "در دسترس",
+  "serverUnreachable": "بی‌پاسخ",
+  "serversCheckFailed": "بررسی سرورها ناموفق بود",
+  "settingsAbout": "درباره",
+  "appVersion": "نسخهٔ برنامه: {version}",
+  "@appVersion": {
+    "placeholders": {
+      "version": { "type": "String"}
+    }
+  },
+  "coreVersion": "نسخهٔ هسته: {version}",
+  "@coreVersion": {
+    "placeholders": {
+      "version": { "type": "String"}
+    }
+  },
+  "licenseTitle": "مجوز",
+  "licensesTitle": "پروانه‌ها",
+  "openSourceLicenses": "پروانه‌های متن‌باز",
+
+  "playerPlay": "پخش",
+  "playerPause": "توقف",
+  "playerSeekBack": "۱۰ ثانیه عقب",
+  "playerSeekForward": "۱۰ ثانیه جلو",
+  "playerVolume": "صدا",
+  "playerMute": "بی‌صدا",
+  "playerFullscreen": "تمام‌صفحه",
+  "playerExitFullscreen": "خروج از تمام‌صفحه",
+  "playerSettings": "تنظیمات پخش",
+  "playbackSpeed": "سرعت پخش",
+  "audioTrack": "صدای (زبان)",
+  "subtitleTrack": "زیرنویس",
+  "subtitleOff": "خاموش",
+  "qualityLabel": "کیفیت",
+  "resumedFrom": "از {duration} ادامه می‌دهیم",
+  "@resumedFrom": {
+    "placeholders": {
+      "duration": { "type": "String"}
+    }
+  },
+  "playerBuffering": "در حال بافر…",
+
+  "tvHint": "با کنترل از راه دور پیمایش کنید",
+  "shortcutDestinations": "Ctrl+۱ تا Ctrl+۵ برای جابه‌جایی بین بخش‌ها",
+
+  "posterSemantic": "{title} — {type}",
+  "@posterSemantic": {
+    "placeholders": {
+      "title": { "type": "String"},
+      "type": { "type": "String"}
+    }
+  },
+  "contentUnavailable": "این عنوان در دسترس نیست"
+}

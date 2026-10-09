@@ -574,6 +574,25 @@ pub unsafe extern "C" fn aftab_store_progress_json(
     }
 }
 
+/// FFI: every progress entry (newest first) as a JSON array of
+/// `{kind, id, progress:{position,duration,updated_at}}` objects — the
+/// "continue watching" / history feed. NULL on failure.
+///
+/// # Safety
+/// `s` must be a live store handle.
+#[no_mangle]
+pub unsafe extern "C" fn aftab_store_progress_all_json(s: *mut AftabStore) -> *mut c_char {
+    match guard(|| {
+        with_store(s, |store| {
+            serde_json::to_string(&store.progress_all())
+                .map_err(|e| AftabError::Parse(format!("reserialize failed: {e}")))
+        })
+    }) {
+        Ok(json) => take_string(json),
+        Err(_) => ptr::null_mut(),
+    }
+}
+
 /// FFI: clear progress. 1 if it existed.
 ///
 /// # Safety
@@ -846,6 +865,21 @@ mod tests {
         let ftext = unsafe { CStr::from_ptr(fl) }.to_str().unwrap().to_string();
         unsafe { aftab_free_string(fl) };
         assert!(ftext.contains("گوشه"));
+
+        // progress_all: the entry written above must come back expanded.
+        let pa = unsafe { aftab_store_progress_all_json(s) };
+        let atext = unsafe { CStr::from_ptr(pa) }.to_str().unwrap().to_string();
+        unsafe { aftab_free_string(pa) };
+        assert!(
+            atext.contains("\"kind\":\"movie\""),
+            "progress_all: {atext}"
+        );
+        assert!(atext.contains("\"id\":5"), "progress_all: {atext}");
+        assert!(
+            atext.contains("\"position\":300.0"),
+            "progress_all: {atext}"
+        );
+        assert!(atext.starts_with('[') && atext.ends_with(']'));
 
         assert_eq!(
             unsafe { aftab_store_remove_favorite(s, kind.as_ptr(), 5) },

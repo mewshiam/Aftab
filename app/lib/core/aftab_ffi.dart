@@ -164,6 +164,14 @@ typedef _StoreGetSettingC = Pointer<Utf8> Function(
 typedef _StoreGetSettingDart = Pointer<Utf8> Function(
     Pointer<Void>, Pointer<Utf8>);
 
+typedef _StoreProgressAllC = Pointer<Utf8> Function(Pointer<Void>);
+typedef _StoreProgressAllDart = Pointer<Utf8> Function(Pointer<Void>);
+
+typedef _DownloadFileC = Int64 Function(
+    Pointer<Utf8>, Pointer<Utf8>, Int32);
+typedef _DownloadFileDart = int Function(
+    Pointer<Utf8>, Pointer<Utf8>, int);
+
 /// Lazily-bound raw symbols. One instance per isolate.
 class AftabRaw {
   AftabRaw._() : _lib = _openCore() {
@@ -231,6 +239,10 @@ class AftabRaw {
         _StoreSetSettingDart>('aftab_store_set_setting');
     aftab_store_get_setting = _lib.lookupFunction<_StoreGetSettingC,
         _StoreGetSettingDart>('aftab_store_get_setting');
+    aftab_store_progress_all_json = _lib.lookupFunction<_StoreProgressAllC,
+        _StoreProgressAllDart>('aftab_store_progress_all_json');
+    aftab_download_file =
+        _lib.lookupFunction<_DownloadFileC, _DownloadFileDart>('aftab_download_file');
   }
 
   final DynamicLibrary _lib;
@@ -268,6 +280,8 @@ class AftabRaw {
   late final _StoreClearProgressDart aftab_store_clear_progress;
   late final _StoreSetSettingDart aftab_store_set_setting;
   late final _StoreGetSettingDart aftab_store_get_setting;
+  late final _StoreProgressAllDart aftab_store_progress_all_json;
+  late final _DownloadFileDart aftab_download_file;
 }
 
 // ─── Typed facade ───────────────────────────────────────────────────────────
@@ -544,6 +558,30 @@ class AftabFfi {
       return _takeString(out);
     } finally {
       calloc.free(cn);
+    }
+  }
+
+  /// Every progress entry (newest first) as raw JSON — the
+  /// "continue watching" / history feed.
+  String progressAllJson(Pointer<Void> store) {
+    final out = _r.aftab_store_progress_all_json(store);
+    if (out == nullptr) throw _lastError();
+    return _takeString(out);
+  }
+
+  /// Synchronous resumable download via the core. Returns the byte count;
+  /// throws [AftabException] on failure. `allowPrivate` must stay false in
+  /// production (fixture tooling only).
+  int downloadFile(String url, String destPath, {bool allowPrivate = false}) {
+    final cu = url.toNativeUtf8();
+    final cd = destPath.toNativeUtf8();
+    try {
+      final n = _r.aftab_download_file(cu, cd, allowPrivate ? 1 : 0);
+      if (n < 0) throw _lastError();
+      return n;
+    } finally {
+      calloc.free(cu);
+      calloc.free(cd);
     }
   }
 }

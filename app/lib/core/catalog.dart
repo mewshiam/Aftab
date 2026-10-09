@@ -11,10 +11,11 @@ library aftab_catalog;
 import 'dart:convert';
 import 'dart:isolate';
 
+import '../data/sources.dart';
 import 'aftab_ffi.dart';
 import 'models.dart';
 
-class CatalogClient {
+class CatalogClient implements CatalogSource {
   const CatalogClient._();
 
   static const CatalogClient instance = CatalogClient._();
@@ -30,6 +31,7 @@ class CatalogClient {
   }
 
   /// One page of movies.
+  @override
   Future<List<CatalogItem>> movies({
     int genre = 0,
     CatalogSort sort = CatalogSort.newest,
@@ -46,6 +48,7 @@ class CatalogClient {
   }
 
   /// One page of series.
+  @override
   Future<List<CatalogItem>> series({
     int genre = 0,
     CatalogSort sort = CatalogSort.newest,
@@ -62,6 +65,7 @@ class CatalogClient {
   }
 
   /// Full-text search.
+  @override
   Future<List<CatalogItem>> search(String query) {
     return Isolate.run(() {
       final ffi = AftabFfi.instance;
@@ -79,7 +83,35 @@ class CatalogClient {
     });
   }
 
+  /// All genres, for the Discover filters.
+  @override
+  Future<List<Genre>> genres() {
+    return Isolate.run(() {
+      final ffi = AftabFfi.instance;
+      return ffi.withDefaultProvider<List<Genre>>((provider) {
+        final raw = ffi.genresJson(provider);
+        return _parseArray(raw, Genre.fromJson);
+      });
+    });
+  }
+
+  /// Resolves a partial item (favorites / continue-watching entries) back
+  /// to the full catalog item with sources, via provider search.
+  @override
+  Future<CatalogItem?> resolveItem(CatalogItem partial) async {
+    if (partial.title.isEmpty) return null;
+    final results = await search(partial.title);
+    for (final r in results) {
+      if (r.kind == partial.kind && r.id == partial.id) return r;
+    }
+    for (final r in results) {
+      if (r.kind == partial.kind && r.title == partial.title) return r;
+    }
+    return null;
+  }
+
   /// Seasons and episodes of one series.
+  @override
   Future<List<Season>> seasons(int seriesId) {
     return Isolate.run(() {
       final ffi = AftabFfi.instance;
@@ -91,6 +123,7 @@ class CatalogClient {
   }
 
   /// Server health probe (base + helpers), for the settings screen.
+  @override
   Future<List<Map<String, dynamic>>> health() {
     return Isolate.run(() {
       final ffi = AftabFfi.instance;
@@ -108,6 +141,7 @@ class CatalogClient {
   /// Locally rank `items` against `query` with the core's Persian-aware
   /// scoring — used to refine provider search results and to filter
   /// loaded pages instantly while typing.
+  @override
   Future<List<CatalogItem>> rank(
       String query, List<CatalogItem> items) {
     return Isolate.run(() {

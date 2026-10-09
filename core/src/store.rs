@@ -54,6 +54,17 @@ impl Progress {
     }
 }
 
+/// One progress entry with its content key, as returned by [`Store::progress_all`].
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ProgressEntry {
+    /// `"movie"` or `"serie"`.
+    pub kind: String,
+    /// Provider id of the movie or series.
+    pub id: i64,
+    /// The stored progress.
+    pub progress: Progress,
+}
+
 /// The whole persisted document.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StoreData {
@@ -223,6 +234,29 @@ impl Store {
         self.data.progress.get(&Store::key(kind, id)).copied()
     }
 
+    /// All progress entries, newest first — "continue watching" / history.
+    ///
+    /// The map is keyed `"{type}:{id}"`; entries are re-expanded into
+    /// (kind, id) pairs so callers never need to know the key format.
+    pub fn progress_all(&self) -> Vec<ProgressEntry> {
+        let mut entries: Vec<ProgressEntry> = self
+            .data
+            .progress
+            .iter()
+            .filter_map(|(key, p)| {
+                let (kind, id) = key.rsplit_once(':')?;
+                let id: i64 = id.parse().ok()?;
+                Some(ProgressEntry {
+                    kind: kind.to_string(),
+                    id,
+                    progress: *p,
+                })
+            })
+            .collect();
+        entries.sort_by_key(|e| std::cmp::Reverse(e.progress.updated_at));
+        entries
+    }
+
     /// Drop "continue watching" state (explicit user action or finished).
     pub fn clear_progress(&mut self, kind: &str, id: i64) -> AftabResult<bool> {
         let key = Store::key(kind, id);
@@ -367,6 +401,25 @@ mod tests {
         assert!(s.clear_progress("movie", 1).unwrap());
         assert!(!s.clear_progress("movie", 1).unwrap());
         assert!(s.progress("movie", 2).is_some());
+        let _ = std::fs::remove_file(&path);
+    }
+
+    #[test]
+    fn progress_all_expands_keys_and_sorts_newest_first() {
+        let (mut s, path) = tmp_store("all");
+        s.set_progress("movie", 11, 540.0, 1080.0).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        s.set_progress("serie", 7, 30.0, 1800.0).unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(1100));
+        s.set_progress("movie", 12, 1.0, 600.0).unwrap();
+
+        let all = s.progress_all();
+        assert_eq!(all.len(), 3);
+        // Newest first: the last write must lead.
+        assert_eq!((all[0].kind.as_str(), all[0].id), ("movie", 12));
+        assert_eq!((all[1].kind.as_str(), all[1].id), ("serie", 7));
+        assert_eq!((all[2].kind.as_str(), all[2].id), ("movie", 11));
+        assert!((all[1].progress.fraction() - 30.0 / 1800.0).abs() < 1e-9);
         let _ = std::fs::remove_file(&path);
     }
 
