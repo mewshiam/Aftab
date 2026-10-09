@@ -1,0 +1,11 @@
+include: package:flutter_lints/flutter.yaml
+
+# The app talks to a C ABI; its bindings intentionally use C-style names.
+analyzer:
+  errors:
+    non_constant_identifier_names: ignore
+
+linter:
+  rules:
+    - always_declare_return_types
+    - unawaited_futures

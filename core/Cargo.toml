@@ -1,0 +1,27 @@
+[package]
+name = "aftab-core"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.75"
+description = "Aftab Media (آفتاب مدیا) cross-platform core: models, Persian normalization, search, CCloud-compatible provider, persistence, downloads, URL safety, and the C-ABI FFI bridge"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/mewshiam/Aftab"
+homepage = "https://github.com/mewshiam/Aftab"
+readme = "../README.md"
+keywords = ["persian", "media", "streaming", "ffi", "mpv"]
+categories = ["multimedia", "internationalization"]
+
+[lib]
+name = "aftab"
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+url = "2"
+ureq = { version = "2", default-features = true }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

@@ -1,0 +1,53 @@
+# Build artifacts
+/target/
+**/target/
+/build/
+**/build/
+
+# Rust
+*.rs.bk
+rust-toolchain.toml.bak
+
+# Flutter / Dart
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+**/flutter_export_environment.sh
+app/.idea/
+app/android/.gradle/
+app/android/local.properties
+app/android/key.properties
+*.keystore
+!app/android/app/debug.keystore
+
+# Windows
+app/windows/flutter/ephemeral/
+app/windows/runner/Debug/
+app/windows/runner/Release/
+*.pdb
+*.dll
+*.lib
+!core/include/*.h
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets — never commit tokens or keys
+.env
+*.pat
+github_pat_*
+
+# Generated at build time
+core/tests/fixtures/media/*.part
+# Native libs staged for APK builds are built per-machine/CI, never committed
+app/android/app/src/main/jniLibs/

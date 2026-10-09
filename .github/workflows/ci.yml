@@ -1,0 +1,231 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── The strongest single signal: the Rust core, fully proven ──────────
+  core-linux:
+    name: core (linux · fmt · clippy · tests · FFI smoke)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Lint (denied warnings)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests (unit + integration vs local HTTP servers)
+        run: cargo test
+
+      - name: Release build
+        run: cargo build --release
+
+      - name: FFI smoke test — the C consumer view
+        run: |
+          gcc -std=c11 -Wall -Wextra -Iinclude ffi/smoke.c \
+              -Ltarget/release -laftab -lm -o /tmp/aftab-smoke
+          LD_LIBRARY_PATH=target/release /tmp/aftab-smoke
+
+  core-windows:
+    name: core (windows · tests · msvc build)
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Tests
+        run: cargo test
+
+      - name: Release build (aftab.dll)
+        run: cargo build --release
+
+      - name: Upload the Windows core DLL
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftab-windows-dll
+          path: core/target/release/aftab.dll
+          if-no-files-found: error
+
+  # ── Flutter: analysis + pure-Dart tests ───────────────────────────────
+  flutter-analyze:
+    name: flutter (analyze · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Analyze (denied infos/warnings)
+        run: flutter analyze --fatal-infos
+
+      - name: Pure-Dart tests
+        run: flutter test
+
+  # ── Android: cross-compile the core for 3 ABIs, then build the APK ────
+  core-android:
+    name: core (android · arm64 · armv7 · x86_64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Locate the NDK and cross-compile
+        working-directory: core
+        run: |
+          set -euo pipefail
+          NDK_DIR="$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}/ndk/"*/ | head -n 1)"
+          echo "NDK: ${NDK_DIR}"
+          TOOLCHAIN="${NDK_DIR}toolchains/llvm/prebuilt/linux-x86_64/bin"
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${TOOLCHAIN}/aarch64-linux-android24-clang"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="${TOOLCHAIN}/armv7a-linux-androideabi24-clang"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="${TOOLCHAIN}/x86_64-linux-android24-clang"
+          export CC_aarch64_linux_android="${TOOLCHAIN}/aarch64-linux-android24-clang"
+          export CC_armv7_linux_androideabi="${TOOLCHAIN}/armv7a-linux-androideabi24-clang"
+          export CC_x86_64_linux_android="${TOOLCHAIN}/x86_64-linux-android24-clang"
+          cargo build --release --target aarch64-linux-android
+          cargo build --release --target armv7-linux-androideabi
+          cargo build --release --target x86_64-linux-android
+
+      - name: Stage jniLibs
+        run: |
+          mkdir -p app/android/app/src/main/jniLibs/arm64-v8a \
+                   app/android/app/src/main/jniLibs/armeabi-v7a \
+                   app/android/app/src/main/jniLibs/x86_64
+          cp core/target/aarch64-linux-android/release/libaftab.so \
+             app/android/app/src/main/jniLibs/arm64-v8a/libaftab.so
+          cp core/target/armv7-linux-androideabi/release/libaftab.so \
+             app/android/app/src/main/jniLibs/armeabi-v7a/libaftab.so
+          cp core/target/x86_64-linux-android/release/libaftab.so \
+             app/android/app/src/main/jniLibs/x86_64/libaftab.so
+
+      - name: Upload jniLibs (for the APK job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftab-android-jnilibs
+          path: app/android/app/src/main/jniLibs
+          if-no-files-found: error
+
+  flutter-apk:
+    name: flutter (android apk · phone + TV)
+    needs: [core-android, flutter-analyze]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Download jniLibs
+        uses: actions/download-artifact@v4
+        with:
+          name: aftab-android-jnilibs
+          path: app/android/app/src/main/jniLibs
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build release APK (LAUNCHER + LEANBACK_LAUNCHER)
+        run: flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftab-release-apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+
+  flutter-windows:
+    name: flutter (windows build)
+    needs: [core-windows, flutter-analyze]
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Download the core DLL
+        uses: actions/download-artifact@v4
+        with:
+          name: aftab-windows-dll
+          path: core-artifacts
+
+      - name: Generate the Windows runner shell (one-time scaffold)
+        run: flutter create --platforms=windows .
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: flutter build windows --release
+
+      - name: Bundle the core DLL next to the executable
+        shell: pwsh
+        run: |
+          $exeDir = Get-ChildItem -Recurse -Filter "aftab_media.exe" `
+              -Path "build\windows\x64\runner" -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty DirectoryName
+          if (-not $exeDir) { $exeDir = "build\windows\x64\runner\Release" }
+          Copy-Item "..\core-artifacts\aftab.dll" -Destination $exeDir
+          Write-Host "aftab.dll bundled into $exeDir"
+
+      - name: Upload the Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftab-windows-build
+          path: app/build/windows/x64/runner/Release
+          if-no-files-found: error
