@@ -1,12 +1,14 @@
 plugins {
     id "com.android.application"
+    // The Flutter Gradle Plugin must be applied after the Android and
+    // Kotlin Gradle plugins.
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
 }
 
 android {
     namespace = "ir.aftab.media"
-    compileSdk = 35
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -14,25 +16,28 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     defaultConfig {
         applicationId = "ir.aftab.media"
-        // libmpv builds are 64-bit-first; 24 covers Android 7.0+ like upstream.
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        // libmpv builds are 64-bit-first; 24 covers Android 7.0+ like the
+        // upstream CCloud app (and media_kit's requirement).
+        minSdk = Math.max(flutter.minSdkVersion, 24)
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
     }
 
     buildTypes {
         release {
             // CI and local builds sign with the debug key; store
             // key.properties + a release keystore before publishing.
-            signingConfig = signingConfigs.debug
+            signingConfig = signingConfigs.getByName("debug")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 
