@@ -1,5 +1,5 @@
-/// Settings: categorized sections (appearance, playback, servers, about)
-/// with native-feeling controls and explanatory descriptions.
+/// Settings: categorized sections (appearance, playback, player, servers,
+/// about) with native-feeling controls and explanatory descriptions.
 
 library aftab_settings_screen;
 
@@ -13,9 +13,11 @@ import '../../data/sources.dart';
 import '../../design/tokens.dart';
 import '../../l10n/app_localizations.dart';
 import '../../navigation/app_scope.dart';
+import 'gesture_settings_screen.dart';
+import 'subtitle_appearance_screen.dart';
 
 /// Keep in sync with `pubspec.yaml` (displayed verbatim in About).
-const String kAppVersion = '0.2.0';
+const String kAppVersion = '0.3.0';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -61,42 +63,84 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final s = S.of(context);
     final settings = AppScope.settingsOf(context);
+    final playerSettings = AppScope.playerSettingsOf(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(s.navSettings)),
       body: ListenableBuilder(
         listenable: settings,
-        builder: (context, _) => ListView(
-          padding: const EdgeInsets.symmetric(vertical: AftabSpacing.sm),
-          children: <Widget>[
-            _section(context, s.settingsAppearance, <Widget>[
-              _themeModeTile(context, s, settings),
-              SwitchListTile(
-                secondary: const Icon(Icons.palette_outlined),
-                title: Text(s.dynamicColors),
-                subtitle: Text(s.dynamicColorsHint),
-                value: settings.useDynamicColor,
-                onChanged: (v) => unawaited(settings.setUseDynamicColor(v)),
-              ),
-              _languageTile(context, s, settings),
-            ]),
-            _section(context, s.settingsPlayback, <Widget>[
-              SwitchListTile(
-                secondary: const Icon(Icons.history),
-                title: Text(s.autoResume),
-                subtitle: Text(s.autoResumeHint),
-                value: settings.autoResume,
-                onChanged: (v) => unawaited(settings.setAutoResume(v)),
-              ),
-              SwitchListTile(
-                secondary: const Icon(Icons.tv_outlined),
-                title: Text(s.tvMode),
-                subtitle: Text(s.tvModeHint),
-                value: settings.tvMode,
-                onChanged: (v) => unawaited(settings.setTvMode(v)),
-              ),
-            ]),
-            _section(context, s.settingsServers, <Widget>[_healthBody(s)]),
+        builder: (context, _) => ListenableBuilder(
+          listenable: playerSettings,
+          builder: (context, _) => ListView(
+            padding:
+                const EdgeInsets.symmetric(vertical: AftabSpacing.sm),
+            children: <Widget>[
+              _section(context, s.settingsAppearance, <Widget>[
+                _themeModeTile(context, s, settings),
+                SwitchListTile(
+                  secondary: const Icon(Icons.palette_outlined),
+                  title: Text(s.dynamicColors),
+                  subtitle: Text(s.dynamicColorsHint),
+                  value: settings.useDynamicColor,
+                  onChanged: (v) =>
+                      unawaited(settings.setUseDynamicColor(v)),
+                ),
+                _languageTile(context, s, settings),
+              ]),
+              _section(context, s.settingsPlayback, <Widget>[
+                SwitchListTile(
+                  secondary: const Icon(Icons.history),
+                  title: Text(s.autoResume),
+                  subtitle: Text(s.autoResumeHint),
+                  value: settings.autoResume,
+                  onChanged: (v) =>
+                      unawaited(settings.setAutoResume(v)),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.tv_outlined),
+                  title: Text(s.tvMode),
+                  subtitle: Text(s.tvModeHint),
+                  value: settings.tvMode,
+                  onChanged: (v) => unawaited(settings.setTvMode(v)),
+                ),
+              ]),
+              _section(context, s.settingsPlayer, <Widget>[
+                ListTile(
+                  leading: const Icon(Icons.format_shapes_outlined),
+                  title: Text(s.subsAppearanceTitle),
+                  subtitle: Text(s.settingsSubtitleStyleHint),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (routeContext) =>
+                          const SubtitleAppearanceScreen(),
+                    ),
+                  ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.gesture),
+                  title: Text(s.gestureSettingsTitle),
+                  subtitle: Text(s.settingsGesturesHint),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (routeContext) =>
+                          const GestureSettingsScreen(),
+                    ),
+                  ),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.memory),
+                  title: Text(s.hwdecTitle),
+                  subtitle: Text(s.hwdecHint),
+                  value: playerSettings.hwDecoding,
+                  onChanged: (v) =>
+                      unawaited(playerSettings.setHwDecoding(v)),
+                ),
+              ]),
+              _section(context, s.settingsServers, <Widget>[
+                _healthBody(s)
+              ]),
             _section(context, s.settingsAbout, <Widget>[
               ListTile(
                 leading: const Icon(Icons.info_outline),
@@ -125,6 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ]),
           ],
+          ),
         ),
       ),
     );

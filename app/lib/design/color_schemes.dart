@@ -92,3 +92,16 @@ const ColorScheme aftabColorSchemeLight = ColorScheme.light(
   inversePrimary: Color(0xFFF6B545),
   scrim: Color(0xFF000000),
 );
+
+/// The player surface scheme: the cinema dark scheme on a true-black stage.
+///
+/// Players stay cinematic regardless of the app theme — even in light
+/// mode, video chrome belongs to the dark "projector room". Dynamic-color
+/// palettes (Material You) keep their accent when the app is in dark mode.
+ColorScheme playerColorScheme(ColorScheme base) {
+  final dark = base.brightness == Brightness.dark ? base : aftabColorSchemeDark;
+  return dark.copyWith(
+    surface: const Color(0xFF000000),
+    surfaceContainerLowest: const Color(0xFF000000),
+  );
+}

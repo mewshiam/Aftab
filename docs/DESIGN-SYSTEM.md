@@ -162,18 +162,54 @@ lists/grids, R key on TV.
 
 ## 10. Player chrome
 
-Built around the unchanged `media_kit` (libmpv) engine:
+Built around the unchanged `media_kit` (libmpv) engine, but now a full
+Material 3 experience on a cinematic true-black stage:
 
-- Auto-hiding gradient controls; tap toggles; any key/mouse shows.
-- Seek bar with position/duration (locale digits), ±10 s buttons,
-  double-tap thirds (touch), J/L ±10 s and arrows ±5 s (desktop).
-- Volume slider + mute on desktop (hardware volume on mobile/TV).
-- Settings sheet: speed (0.5–2×), audio track, subtitle track (incl.
-  off), quality (movies, switching preserves position).
-- Fullscreen (touch): landscape lock + immersive; restored on exit.
-- Keyboard: Space/K play, J/L seek, ↑/↓ volume, M mute, F fullscreen,
-  Esc exit. Media keys everywhere. TV keeps arrows free for D-pad.
-- Buffering indicator; resume notice ("از ۱:۲۳ ادامه می‌دهیم").
+**Material surface.** The player always uses the dark brand scheme on
+`surface = #000000` (`playerColorScheme` in `color_schemes.dart`) — even
+when the app runs in light mode, video chrome belongs to the projector
+room. Material You palettes keep their accent in dark mode. Every control
+resolves its colors from that scheme: filled play button
+(`primary`/`onPrimary`), M3 sliders with a **buffered secondary track**,
+tonal top chips (quality, sleep countdown), themed sheets and switches.
+
+**Subtitles (libass).** Subtitles render *inside* the video texture via
+libass (`PlayerConfiguration(libass: true)`), so user styling is honored
+by the same renderer mpv uses. The complete style — font family
+(bundled Vazirmatn, generic families, or any installed name), size,
+text/outline/background colors (with alpha), outline width, bold, italic,
+vertical position, and "override embedded ASS styles" — lives in
+`player/subtitle_style.dart` as a pure model that maps onto mpv's
+`sub-*` properties (`#AARRGGBB` colors, alpha first). It is edited from
+Settings → Player → Subtitle appearance (with a live libass-like preview)
+or live from the player's own sheet, and persists through the Rust store.
+
+**Playback settings.** Screen fit (contain / stretch / crop-to-fill /
+16:9 / 4:3 / 2.35:1 → `video-aspect-override` + `panscan`), zoom
+(log2 `video-zoom`), free-form speed (0.25×–4× slider + presets),
+audio/subtitle delay (±0.5/0.1 s, live `audio-delay`/`sub-delay`),
+sleep timer (15–60 min, top-bar countdown chip), and a hardware
+decoding switch (`hwdec=auto-safe`/`no`).
+
+**Touch gestures** (each individually switchable in Settings → Player →
+Gestures; pure logic in `player/gestures.dart`):
+
+| Gesture | Action | Feedback |
+|---|---|---|
+| Vertical drag, left half | Screen brightness (`screen_brightness`) | capsule + % |
+| Vertical drag, right half | Player volume | capsule + % |
+| Horizontal drag | Scrub seek (180 s per full width, RTL-mirrored) | ±s chip + target time |
+| Double-tap side thirds | Seek back/forward (5/10/15/30 s, configurable) | seek ripple |
+| Press & hold | Temporary 2× speed | "۲×" chip |
+
+The halves stay **physical** (left = brightness) in both text directions,
+matching every mainstream player's muscle memory.
+
+**Everything else from v0.1/0.2 stays:** auto-hiding gradient controls,
+tap toggles, J/L ±10 s and arrows ±5 s (desktop), media keys, fullscreen
+landscape lock (touch), D-pad-safe TV shortcuts, buffering indicator,
+resume notice, and progress persistence every 5 s. Playback failures now
+surface as a themed error pane with a retry action.
 
 ## 11. Performance
 
@@ -189,8 +225,12 @@ Built around the unchanged `media_kit` (libmpv) engine:
 | Concern | File |
 |---|---|
 | Spacing / radius / motion / breakpoints | `lib/design/tokens.dart` |
-| Color schemes | `lib/design/color_schemes.dart` |
+| Color schemes (+ player stage scheme) | `lib/design/color_schemes.dart` |
 | Theme assembly + dynamic color | `lib/design/theme.dart` |
 | Typography | `lib/design/typography.dart` |
+| Subtitle style model → mpv | `lib/player/subtitle_style.dart` |
+| Playback options → mpv | `lib/player/playback_options.dart` |
+| Gesture zones + drag math | `lib/player/gestures.dart` |
+| Player preferences (persisted) | `lib/data/player_settings.dart` |
 | Locale number/duration formatting | `lib/utils/format.dart` |
 | Strings (fa/en) | `lib/l10n/app_*.arb` |

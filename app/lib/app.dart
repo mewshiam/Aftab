@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'data/app_settings.dart';
+import 'data/player_settings.dart';
 import 'design/color_schemes.dart';
 import 'design/theme.dart';
 import 'l10n/app_localizations.dart';
@@ -22,9 +23,14 @@ import 'data/watch_index.dart';
 import 'navigation/app_shell.dart';
 
 class AftabApp extends StatelessWidget {
-  const AftabApp({super.key, required this.controller});
+  const AftabApp({
+    super.key,
+    required this.controller,
+    required this.playerSettings,
+  });
 
   final SettingsController controller;
+  final PlayerSettingsController playerSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +38,7 @@ class AftabApp extends StatelessWidget {
       catalog: CatalogClient.instance,
       store: AftabStore.instance,
       settings: controller,
+      playerSettings: playerSettings,
       watchIndex: WatchIndex(store: AftabStore.instance),
       downloads: DownloadManager(store: AftabStore.instance),
       child: ListenableBuilder(

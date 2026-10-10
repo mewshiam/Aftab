@@ -19,6 +19,7 @@ import 'package:media_kit/media_kit.dart';
 import 'app.dart';
 import 'core/store.dart';
 import 'data/app_settings.dart';
+import 'data/player_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +35,10 @@ Future<void> main() async {
   unawaited(_registerFontLicense());
   final controller = SettingsController(store: AftabStore.instance);
   await controller.load();
-  runApp(AftabApp(controller: controller));
+  final playerSettings =
+      PlayerSettingsController(store: AftabStore.instance);
+  await playerSettings.load();
+  runApp(AftabApp(controller: controller, playerSettings: playerSettings));
 }
 
 /// Registers the Vazirmatn OFL so it appears in the About → Licenses

@@ -254,7 +254,7 @@ class _DetailScreenState extends State<DetailScreen> {
     );
     if (chosen == null) return;
     if (!context.mounted) return;
-    Navigator.of(context).pushReplacement<void, void>(
+    unawaited(Navigator.of(context).pushReplacement<void, void>(
       MaterialPageRoute<void>(
         builder: (_) => PlayerScreen(
           title: _item.title,
@@ -264,7 +264,7 @@ class _DetailScreenState extends State<DetailScreen> {
           onPickQuality: _pickMovieQuality,
         ),
       ),
-    );
+    ));
   }
 
   @override

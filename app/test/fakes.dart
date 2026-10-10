@@ -9,6 +9,7 @@ import 'package:aftab_media/core/models.dart';
 import 'package:aftab_media/core/store.dart';
 import 'package:aftab_media/data/app_settings.dart';
 import 'package:aftab_media/data/downloads.dart';
+import 'package:aftab_media/data/player_settings.dart';
 import 'package:aftab_media/data/sources.dart';
 import 'package:aftab_media/data/watch_index.dart';
 import 'package:aftab_media/l10n/app_localizations.dart';
@@ -170,11 +171,14 @@ Widget testApp({
   FakeCatalogSource? catalog,
   FakeStoreSource? store,
   SettingsController? settings,
+  PlayerSettingsController? playerSettings,
   WatchIndex? watchIndex,
   DownloadManager? downloads,
 }) {
   final fakeStore = store ?? FakeStoreSource();
   final controller = settings ?? SettingsController(store: fakeStore);
+  final playerPrefs =
+      playerSettings ?? PlayerSettingsController(store: fakeStore);
   return MaterialApp(
     locale: controller.materialLocale,
     supportedLocales: const <Locale>[Locale('fa'), Locale('en')],
@@ -189,6 +193,7 @@ Widget testApp({
       catalog: catalog ?? FakeCatalogSource(),
       store: fakeStore,
       settings: controller,
+      playerSettings: playerPrefs,
       watchIndex: watchIndex ?? WatchIndex(store: fakeStore),
       downloads: downloads ?? DownloadManager(store: fakeStore),
       child: child,

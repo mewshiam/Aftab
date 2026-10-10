@@ -11,6 +11,7 @@ import '../core/catalog.dart';
 import '../core/store.dart';
 import '../data/app_settings.dart';
 import '../data/downloads.dart';
+import '../data/player_settings.dart';
 import '../data/sources.dart';
 import '../data/watch_index.dart';
 
@@ -20,6 +21,7 @@ class AppScope extends InheritedWidget {
     required this.catalog,
     required this.store,
     required this.settings,
+    required this.playerSettings,
     required this.watchIndex,
     required this.downloads,
     required super.child,
@@ -28,6 +30,7 @@ class AppScope extends InheritedWidget {
   final CatalogSource catalog;
   final StoreSource store;
   final SettingsController settings;
+  final PlayerSettingsController playerSettings;
   final WatchIndex watchIndex;
   final DownloadManager downloads;
 
@@ -43,6 +46,8 @@ class AppScope extends InheritedWidget {
   static StoreSource storeOf(BuildContext context) => of(context).store;
   static SettingsController settingsOf(BuildContext context) =>
       of(context).settings;
+  static PlayerSettingsController playerSettingsOf(BuildContext context) =>
+      of(context).playerSettings;
   static WatchIndex watchIndexOf(BuildContext context) => of(context).watchIndex;
   static DownloadManager downloadsOf(BuildContext context) =>
       of(context).downloads;
@@ -52,6 +57,7 @@ class AppScope extends InheritedWidget {
       catalog != oldWidget.catalog ||
       store != oldWidget.store ||
       settings != oldWidget.settings ||
+      playerSettings != oldWidget.playerSettings ||
       watchIndex != oldWidget.watchIndex ||
       downloads != oldWidget.downloads;
 }
@@ -59,12 +65,14 @@ class AppScope extends InheritedWidget {
 /// The production scope: real FFI-backed implementations.
 AppScope buildProductionScope({
   required SettingsController settings,
+  required PlayerSettingsController playerSettings,
   required Widget child,
 }) {
   return AppScope(
     catalog: CatalogClient.instance,
     store: AftabStore.instance,
     settings: settings,
+    playerSettings: playerSettings,
     watchIndex: WatchIndex(store: AftabStore.instance),
     downloads: DownloadManager(store: AftabStore.instance),
     child: child,

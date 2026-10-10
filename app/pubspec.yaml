@@ -1,7 +1,7 @@
 name: aftab_media
 description: آفتاب مدیا — Persian-first cross-platform media app (Android, Android TV, Windows).
 publish_to: "none"
-version: 0.2.0+2
+version: 0.3.0+3
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -27,6 +27,10 @@ dependencies:
   http: ^1.2.2
   # Material You dynamic colors (Android 12+; harmless elsewhere).
   dynamic_color: ^1.7.0
+  # Brightness gesture in the player (Android + Windows).
+  screen_brightness: ^2.1.11
+  # External subtitle file picking in the player.
+  file_picker: ^11.0.3
 
 dev_dependencies:
   flutter_test:
@@ -39,6 +43,10 @@ flutter:
   assets:
     - assets/icons/
     - assets/fonts/OFL.txt
+    # Vazirmatn is also staged for libass (subtitle rendering):
+    # media_kit copies it into fontconfig's dir on Android, and the
+    # player stages it into the app-support dir on Windows.
+    - assets/fonts/
   fonts:
     # Persian-first typeface (OFL) — covers both the Arabic script and
     # Latin well, so one family keeps fa/en typography consistent.
