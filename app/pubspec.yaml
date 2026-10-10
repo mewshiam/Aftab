@@ -30,7 +30,10 @@ dependencies:
   # Brightness gesture in the player (Android + Windows).
   screen_brightness: ^2.1.11
   # External subtitle file picking in the player.
-  file_picker: ^11.0.3
+  # file_picker 13 (federated): android_file_picker 2.x honours AGP 9 with
+  # android.builtInKotlin=false and applies the toolchain Kotlin plugin —
+  # 11.0.3 skipped it under AGP 9 and shipped no compiled classes.
+  file_picker: ^13.1.0
 
 dev_dependencies:
   flutter_test:

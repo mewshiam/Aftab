@@ -814,14 +814,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _pickSubtitleFile() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         // Any file: mpv probes the content, so no extension filter is
         // needed (and none survives every platform's picker intact).
         type: FileType.any,
-        allowMultiple: false,
-        withData: false,
       );
-      final path = result?.files.single.path;
+      final path = file?.path;
       if (path == null || !mounted) return;
       final ok = await addExternalSubtitle(_player, path);
       if (!mounted) return;
