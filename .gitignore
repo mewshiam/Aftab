@@ -3,6 +3,13 @@
 **/target/
 /build/
 **/build/
+# Release staging (CI and local variant builds)
+/dist/
+**/dist/
+/stage/
+**/stage/
+/artifacts/
+**/artifacts/
 
 # Rust
 *.rs.bk

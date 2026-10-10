@@ -47,7 +47,7 @@ jobs:
           LD_LIBRARY_PATH=target/release /tmp/aftab-smoke
 
   core-windows:
-    name: core (windows · tests · msvc build)
+    name: core (windows · tests · msvc x64 + x86)
     runs-on: windows-latest
     defaults:
       run:
@@ -56,6 +56,8 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-pc-windows-msvc
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -64,14 +66,25 @@ jobs:
       - name: Tests
         run: cargo test
 
-      - name: Release build (aftab.dll)
+      - name: Release build (x64 — aftab.dll)
         run: cargo build --release
 
-      - name: Upload the Windows core DLL
+      - name: Release build (x86 — 32-bit aftab.dll for native embedders)
+        run: cargo build --release --target i686-pc-windows-msvc
+
+      - name: Stage both DLLs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ..\artifacts | Out-Null
+          Copy-Item target\release\aftab.dll -Destination ..\artifacts\aftab-x64.dll
+          Copy-Item target\i686-pc-windows-msvc\release\aftab.dll -Destination ..\artifacts\aftab-x86.dll
+          Get-ChildItem ..\artifacts
+
+      - name: Upload the Windows core DLLs
         uses: actions/upload-artifact@v4
         with:
-          name: aftab-windows-dll
-          path: core/target/release/aftab.dll
+          name: aftab-windows-dlls
+          path: artifacts
           if-no-files-found: error
 
   # ── Flutter: analysis + pure-Dart tests ───────────────────────────────
@@ -98,16 +111,19 @@ jobs:
       - name: Pure-Dart tests
         run: flutter test
 
-  # ── Android: cross-compile the core for 3 ABIs, then build the APK ────
+  # ── Android: cross-compile the core for 4 ABIs, then build the APKs ────
+  # x86 (i686) ships in the dev jniLibs artifact only: the Flutter engine
+  # dropped Android x86 support, and the gradle plugin filters it out of
+  # every app APK (flutter/flutter#169884).
   core-android:
-    name: core (android · arm64 · armv7 · x86_64)
+    name: core (android · arm64 · armv7 · x86_64 · x86)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -124,29 +140,36 @@ jobs:
           export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${TOOLCHAIN}/aarch64-linux-android24-clang"
           export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="${TOOLCHAIN}/armv7a-linux-androideabi24-clang"
           export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="${TOOLCHAIN}/x86_64-linux-android24-clang"
+          export CARGO_TARGET_I686_LINUX_ANDROID_LINKER="${TOOLCHAIN}/i686-linux-android24-clang"
           # Compilers for cc-rs (ring's assembly).
           export CC_aarch64_linux_android="${TOOLCHAIN}/aarch64-linux-android24-clang"
           export CC_armv7_linux_androideabi="${TOOLCHAIN}/armv7a-linux-androideabi24-clang"
           export CC_x86_64_linux_android="${TOOLCHAIN}/x86_64-linux-android24-clang"
+          export CC_i686_linux_android="${TOOLCHAIN}/i686-linux-android24-clang"
           # Archivers — modern NDKs ship llvm-ar only, so point cc-rs at it.
           export AR_aarch64_linux_android="${TOOLCHAIN}/llvm-ar"
           export AR_armv7_linux_androideabi="${TOOLCHAIN}/llvm-ar"
           export AR_x86_64_linux_android="${TOOLCHAIN}/llvm-ar"
+          export AR_i686_linux_android="${TOOLCHAIN}/llvm-ar"
           cargo build --release --target aarch64-linux-android
           cargo build --release --target armv7-linux-androideabi
           cargo build --release --target x86_64-linux-android
+          cargo build --release --target i686-linux-android
 
       - name: Stage jniLibs
         run: |
           mkdir -p app/android/app/src/main/jniLibs/arm64-v8a \
                    app/android/app/src/main/jniLibs/armeabi-v7a \
-                   app/android/app/src/main/jniLibs/x86_64
+                   app/android/app/src/main/jniLibs/x86_64 \
+                   app/android/app/src/main/jniLibs/x86
           cp core/target/aarch64-linux-android/release/libaftab.so \
              app/android/app/src/main/jniLibs/arm64-v8a/libaftab.so
           cp core/target/armv7-linux-androideabi/release/libaftab.so \
              app/android/app/src/main/jniLibs/armeabi-v7a/libaftab.so
           cp core/target/x86_64-linux-android/release/libaftab.so \
              app/android/app/src/main/jniLibs/x86_64/libaftab.so
+          cp core/target/i686-linux-android/release/libaftab.so \
+             app/android/app/src/main/jniLibs/x86/libaftab.so
 
       - name: Upload jniLibs (for the APK job)
         uses: actions/upload-artifact@v4
@@ -156,7 +179,7 @@ jobs:
           if-no-files-found: error
 
   flutter-apk:
-    name: flutter (android apk · phone + TV)
+    name: flutter (android apks · universal + per-abi · phone + TV)
     needs: [core-android, flutter-analyze]
     runs-on: ubuntu-latest
     defaults:
@@ -179,18 +202,36 @@ jobs:
       - name: Pub get
         run: flutter pub get
 
-      - name: Build release APK (LAUNCHER + LEANBACK_LAUNCHER)
+      # Build order matters: the universal APK first, then the per-ABI
+      # splits. The Flutter gradle plugin packages exactly the ABIs the
+      # engine supports (arm64-v8a, armeabi-v7a, x86_64) in both cases and
+      # filters the dev-only x86 jniLibs out of every app APK.
+      - name: Build universal APK (all supported ABIs · LAUNCHER + LEANBACK_LAUNCHER)
         run: flutter build apk --release
 
-      - name: Upload APK
+      - name: Build per-ABI APKs (arm64-v8a · armeabi-v7a · x86_64)
+        run: flutter build apk --release --split-per-abi
+
+      - name: Stage the four variants
+        run: |
+          set -euo pipefail
+          OUT=build/app/outputs/flutter-apk
+          mkdir -p dist
+          cp "$OUT/app-release.apk"             dist/aftab-android-universal.apk
+          cp "$OUT/app-arm64-v8a-release.apk"   dist/aftab-android-arm64-v8a.apk
+          cp "$OUT/app-armeabi-v7a-release.apk" dist/aftab-android-armeabi-v7a.apk
+          cp "$OUT/app-x86_64-release.apk"      dist/aftab-android-x86_64.apk
+          ls -lh dist
+
+      - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
-          name: aftab-release-apk
-          path: app/build/app/outputs/flutter-apk/app-release.apk
+          name: aftab-apk-variants
+          path: app/dist
           if-no-files-found: error
 
   flutter-windows:
-    name: flutter (windows build)
+    name: flutter (windows x64 app)
     needs: [core-windows, flutter-analyze]
     runs-on: windows-latest
     defaults:
@@ -204,10 +245,10 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Download the core DLL
+      - name: Download the core DLLs
         uses: actions/download-artifact@v4
         with:
-          name: aftab-windows-dll
+          name: aftab-windows-dlls
           path: core-artifacts
 
       - name: Generate the Windows runner shell (one-time scaffold)
@@ -226,8 +267,8 @@ jobs:
               -Path "build\windows\x64\runner" -ErrorAction SilentlyContinue |
               Select-Object -First 1 -ExpandProperty DirectoryName
           if (-not $exeDir) { $exeDir = "build\windows\x64\runner\Release" }
-          Copy-Item "..\core-artifacts\aftab.dll" -Destination $exeDir
-          Write-Host "aftab.dll bundled into $exeDir"
+          Copy-Item "..\core-artifacts\aftab-x64.dll" -Destination "$exeDir\aftab.dll"
+          Write-Host "aftab.dll (x64) bundled into $exeDir"
 
       - name: Upload the Windows build
         uses: actions/upload-artifact@v4

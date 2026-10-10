@@ -1,0 +1,361 @@
+# Automated release pipeline.
+#
+# Push a tag matching 'v*' (e.g. `git tag v0.3.0 && git push origin v0.3.0`)
+# and this workflow runs the full quality gates, builds every release
+# variant, and publishes a GitHub Release with SHA-256 checksums.
+#
+# It is idempotent: re-running the workflow (or re-pushing the tag) refreshes
+# the existing release's assets and notes instead of failing.
+#
+# Variant matrix (everything the toolchain can honestly produce):
+#   Android: arm64-v8a, armeabi-v7a, x86_64 (split APKs) + universal (fat APK)
+#            — Android x86 (32-bit) was removed from the Flutter engine
+#              (flutter/flutter#169884), so an x86 app APK cannot be built;
+#              the x86 libaftab.so still ships in the core jniLibs asset.
+#   Windows: x64 app (Flutter + libmpv ship no 32-bit Windows builds)
+#            + aftab.dll for x64 AND x86 in the core DLLs asset.
+#
+# The build steps intentionally mirror .github/workflows/ci.yml — keep the
+# two files in sync when changing toolchains or targets.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── Gate 1: the Rust core, fully proven ────────────────────────────────
+  core:
+    name: gate · core (linux · fmt · clippy · tests · FFI smoke)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Format check
+        run: cargo fmt --check
+
+      - name: Lint (denied warnings)
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests (unit + integration vs local HTTP servers)
+        run: cargo test
+
+      - name: Release build
+        run: cargo build --release
+
+      - name: FFI smoke test — the C consumer view
+        run: |
+          gcc -std=c11 -Wall -Wextra -Iinclude ffi/smoke.c \
+              -Ltarget/release -laftab -lm -o /tmp/aftab-smoke
+          LD_LIBRARY_PATH=target/release /tmp/aftab-smoke
+
+  # ── Gate 2: the Flutter app ────────────────────────────────────────────
+  flutter:
+    name: gate · flutter (analyze · test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        run: flutter pub get
+
+      - name: Analyze (denied infos/warnings)
+        run: flutter analyze --fatal-infos
+
+      - name: Pure-Dart tests
+        run: flutter test
+
+  # ── Android: core for 4 ABIs + universal & per-ABI APKs ────────────────
+  android:
+    name: build · android (core ×4 · universal + per-abi apks)
+    needs: [core, flutter]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android,i686-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Locate the NDK and cross-compile the core (4 ABIs)
+        working-directory: core
+        run: |
+          set -euo pipefail
+          NDK_DIR="$(ls -d "${ANDROID_HOME:-/usr/local/lib/android/sdk}/ndk/"*/ | head -n 1)"
+          echo "NDK: ${NDK_DIR}"
+          TOOLCHAIN="${NDK_DIR}toolchains/llvm/prebuilt/linux-x86_64/bin"
+          # Linkers — the per-target clang wrappers.
+          export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="${TOOLCHAIN}/aarch64-linux-android24-clang"
+          export CARGO_TARGET_ARMV7_LINUX_ANDROIDEABI_LINKER="${TOOLCHAIN}/armv7a-linux-androideabi24-clang"
+          export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="${TOOLCHAIN}/x86_64-linux-android24-clang"
+          export CARGO_TARGET_I686_LINUX_ANDROID_LINKER="${TOOLCHAIN}/i686-linux-android24-clang"
+          # Compilers for cc-rs (ring's assembly).
+          export CC_aarch64_linux_android="${TOOLCHAIN}/aarch64-linux-android24-clang"
+          export CC_armv7_linux_androideabi="${TOOLCHAIN}/armv7a-linux-androideabi24-clang"
+          export CC_x86_64_linux_android="${TOOLCHAIN}/x86_64-linux-android24-clang"
+          export CC_i686_linux_android="${TOOLCHAIN}/i686-linux-android24-clang"
+          # Archivers — modern NDKs ship llvm-ar only, so point cc-rs at it.
+          export AR_aarch64_linux_android="${TOOLCHAIN}/llvm-ar"
+          export AR_armv7_linux_androideabi="${TOOLCHAIN}/llvm-ar"
+          export AR_x86_64_linux_android="${TOOLCHAIN}/llvm-ar"
+          export AR_i686_linux_android="${TOOLCHAIN}/llvm-ar"
+          cargo build --release --target aarch64-linux-android
+          cargo build --release --target armv7-linux-androideabi
+          cargo build --release --target x86_64-linux-android
+          cargo build --release --target i686-linux-android
+
+      - name: Stage jniLibs
+        run: |
+          mkdir -p app/android/app/src/main/jniLibs/arm64-v8a \
+                   app/android/app/src/main/jniLibs/armeabi-v7a \
+                   app/android/app/src/main/jniLibs/x86_64 \
+                   app/android/app/src/main/jniLibs/x86
+          cp core/target/aarch64-linux-android/release/libaftab.so \
+             app/android/app/src/main/jniLibs/arm64-v8a/libaftab.so
+          cp core/target/armv7-linux-androideabi/release/libaftab.so \
+             app/android/app/src/main/jniLibs/armeabi-v7a/libaftab.so
+          cp core/target/x86_64-linux-android/release/libaftab.so \
+             app/android/app/src/main/jniLibs/x86_64/libaftab.so
+          cp core/target/i686-linux-android/release/libaftab.so \
+             app/android/app/src/main/jniLibs/x86/libaftab.so
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Pub get
+        working-directory: app
+        run: flutter pub get
+
+      # Universal first, then per-ABI splits. The Flutter gradle plugin
+      # packages exactly the engine-supported ABIs (arm64-v8a,
+      # armeabi-v7a, x86_64) and filters the dev-only x86 jniLibs out of
+      # every app APK.
+      - name: Build universal APK (all supported ABIs · LAUNCHER + LEANBACK_LAUNCHER)
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Build per-ABI APKs (arm64-v8a · armeabi-v7a · x86_64)
+        working-directory: app
+        run: flutter build apk --release --split-per-abi
+
+      - name: Stage the release assets
+        run: |
+          set -euo pipefail
+          V="${GITHUB_REF_NAME#v}"
+          OUT=app/build/app/outputs/flutter-apk
+          mkdir -p app/dist
+          cp "$OUT/app-release.apk"             "app/dist/aftab-${V}-android-universal.apk"
+          cp "$OUT/app-arm64-v8a-release.apk"   "app/dist/aftab-${V}-android-arm64-v8a.apk"
+          cp "$OUT/app-armeabi-v7a-release.apk" "app/dist/aftab-${V}-android-armeabi-v7a.apk"
+          cp "$OUT/app-x86_64-release.apk"      "app/dist/aftab-${V}-android-x86_64.apk"
+          # Developer asset: the Rust core for all four ABIs, incl. x86.
+          ( cd app/android/app/src/main && \
+            zip -qr "${GITHUB_WORKSPACE}/app/dist/aftab-${V}-core-android-jnilibs.zip" jniLibs )
+          ls -lh app/dist
+
+      - name: Upload the Android assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftab-release-android
+          path: app/dist
+          if-no-files-found: error
+
+  # ── Windows: core tests + x64/x86 DLLs + the x64 app ───────────────────
+  windows:
+    name: build · windows (core x64+x86 · app x64)
+    needs: [core, flutter]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-pc-windows-msvc
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: core
+
+      - name: Tests (Windows host)
+        working-directory: core
+        run: cargo test
+
+      - name: Release build (x64 — aftab.dll)
+        working-directory: core
+        run: cargo build --release
+
+      - name: Release build (x86 — 32-bit aftab.dll for native embedders)
+        working-directory: core
+        run: cargo build --release --target i686-pc-windows-msvc
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate the Windows runner shell (one-time scaffold)
+        working-directory: app
+        run: flutter create --platforms=windows .
+
+      - name: Pub get
+        working-directory: app
+        run: flutter pub get
+
+      - name: Build Windows release
+        working-directory: app
+        run: flutter build windows --release
+
+      - name: Bundle the core DLL and stage the release assets
+        shell: pwsh
+        run: |
+          $V = "${env:GITHUB_REF_NAME}" -replace '^v', ''
+          $exeDir = Get-ChildItem -Recurse -Filter "aftab_media.exe" `
+              -Path "app\build\windows\x64\runner" -ErrorAction SilentlyContinue |
+              Select-Object -First 1 -ExpandProperty DirectoryName
+          if (-not $exeDir) { $exeDir = "app\build\windows\x64\runner\Release" }
+          Copy-Item "core\target\release\aftab.dll" -Destination "$exeDir\aftab.dll"
+          Write-Host "aftab.dll (x64) bundled into $exeDir"
+
+          New-Item -ItemType Directory -Force -Path app\dist, app\stage\aftab-media | Out-Null
+          Copy-Item "$exeDir\*" -Destination "app\stage\aftab-media" -Recurse -Force
+          Compress-Archive -Path "app\stage\aftab-media" `
+              -DestinationPath "app\dist\aftab-$V-windows-x64.zip" -Force
+          # Developer asset: the Rust core for both Windows architectures.
+          Compress-Archive -Path "core\target\release\aftab.dll", `
+                            "core\target\i686-pc-windows-msvc\release\aftab.dll" `
+              -DestinationPath "app\dist\aftab-$V-core-windows-dlls.zip" -Force
+          Get-ChildItem app\dist
+
+      - name: Upload the Windows assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: aftab-release-windows
+          path: app/dist
+          if-no-files-found: error
+
+  # ── Publish: assemble, checksum, release ───────────────────────────────
+  release:
+    name: publish · GitHub release + SHA256SUMS
+    needs: [core, flutter, android, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download the Android assets
+        uses: actions/download-artifact@v4
+        with:
+          name: aftab-release-android
+          path: dist
+
+      - name: Download the Windows assets
+        uses: actions/download-artifact@v4
+        with:
+          name: aftab-release-windows
+          path: dist
+
+      - name: SHA-256 checksums
+        run: |
+          set -euo pipefail
+          ( cd dist && sha256sum -- * > "${GITHUB_WORKSPACE}/SHA256SUMS.txt" )
+          cat SHA256SUMS.txt
+
+      - name: Compose the release notes
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          V="${TAG#v}"
+          {
+            echo "# آفتاب مدیا ${TAG} — Aftab Media ${TAG}"
+            echo
+            echo 'دانلودها در بخش **Assets** پایین همین صفحه هستند؛ «SHA256SUMS.txt» درهم‌سازی SHA-256 همهٔ بسته‌ها را دارد.'
+            echo 'Direct downloads live under **Assets** below — verify against the bundled `SHA256SUMS.txt`.'
+            echo
+            echo '## بسته‌ها / Packages'
+            echo
+            echo '| Asset | برای / For | Size |'
+            echo '|---|---|---|'
+            for f in dist/*; do
+              name="$(basename "$f")"
+              size="$(du -h "$f" | cut -f1)"
+              case "$name" in
+                *android-universal*)  desc='همهٔ معماری‌ها — همه‌جا کار می‌کند / all supported ABIs, works everywhere' ;;
+                *arm64-v8a*)          desc='گوشی‌ها و تی‌وی‌های مدرن / modern phones & Android TVs' ;;
+                *armeabi-v7a*)        desc='گوشی‌های ۳۲-بیتی قدیمی‌تر / older 32-bit ARM phones' ;;
+                *x86_64.apk*)         desc='شبیه‌سازهای اینتلی و کروم‌بوک / Intel emulators & Chromebooks' ;;
+                *windows-x64*)        desc='ویندوز ۶۴-بیتی / 64-bit Windows' ;;
+                *jnilibs*)            desc='هستهٔ Rust برای توسعه‌دهندگان — ۴ ABI شامل x86 / core for native embedding' ;;
+                *dlls*)               desc='aftab.dll برای x64 و x86 / core DLLs, 64- and 32-bit' ;;
+                *)                    desc='' ;;
+              esac
+              printf '| `%s` | %s | %s |\n' "$name" "$desc" "$size"
+            done
+            echo
+            echo '## دربارهٔ x86 (۳۲-بیتی) / About 32-bit x86'
+            echo
+            echo '- **اندروید / Android**: موتور Flutter پشتیبانی x86 اندروید را حذف کرده است ([flutter#169884](https://github.com/flutter/flutter/pull/169884))، پس APK جداگانهٔ x86 قابل ساخت نیست؛ `libaftab.so` برای x86 در بستهٔ jniLibs هسته ارائه می‌شود.'
+            echo '- **ویندوز / Windows**: نسخهٔ ۳۲-بیتی از موتور Flutter و libmpv برای ویندوز وجود ندارد؛ اپ فقط x64 است و `aftab.dll` برای x86 در بستهٔ DLLهای هسته ارائه می‌شود.'
+            echo
+            echo '---'
+            echo
+            echo '## گزارش تغییرات / Changelog'
+            echo
+            awk -v s="## [${V}]" 'index($0, s)==1 {inf=1; next} inf && /^## \[/ {exit} inf {print}' CHANGELOG.md
+          } > notes.md
+          # Fall back gracefully when the CHANGELOG has no section for this version.
+          if ! grep -q '^###' notes.md; then
+            echo "_No CHANGELOG section for ${V} — see the commit history._" >> notes.md
+          fi
+
+      - name: Publish (idempotent)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release for ${TAG} already exists — refreshing it."
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --title "Aftab Media ${TAG}" --notes-file notes.md
+          fi
+          gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md
+          gh release upload "$TAG" --repo "$GITHUB_REPOSITORY" \
+            dist/* SHA256SUMS.txt --clobber
+          echo '::notice::Published assets:'
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name'

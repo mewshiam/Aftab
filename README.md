@@ -79,8 +79,23 @@ cd app
 flutter pub get
 flutter run                  # اندروید
 flutter run -d windows       # ویندوز
-flutter build apk            # APK (موبایل + تی‌وی)
+flutter build apk                        # APK جهانی (موبایل + تی‌وی)
+flutter build apk --split-per-abi        # APK جداگانه برای هر معماری
 ```
+
+### دانلود
+
+آخرین انتشار‌ها: [github.com/mewshiam/Aftab/releases](https://github.com/mewshiam/Aftab/releases)
+
+| بسته | برای |
+|---|---|
+| `aftab-…-android-universal.apk` | همهٔ دستگاه‌ها (arm64 + arm32 + x64) |
+| `aftab-…-android-arm64-v8a.apk` | گوشی‌ها و تی‌وی‌های مدرن |
+| `aftab-…-android-armeabi-v7a.apk` | گوشی‌های ۳۲-بیتی قدیمی‌تر |
+| `aftab-…-android-x86_64.apk` | شبیه‌سازها و کروم‌بوک‌های اینتلی |
+| `aftab-…-windows-x64.zip` | ویندوز ۶۴-بیتی |
+
+انتشار‌ها خودکارند: هر تگ `v*` گردش‌کار `release.yml` را اجرا می‌کند و همهٔ بسته‌ها + `SHA256SUMS.txt` را منتشر می‌کند. Android x86 (۳۲-بیتی اینتلی) از سمت موتور Flutter حذف شده ([flutter#169884](https://github.com/flutter/flutter/pull/169884)) و APK جداگانه ندارد؛ `libaftab.so` برای x86 در بستهٔ jniLibs هسته هست. اپ ویندوز فقط x64 است (نسخهٔ ۳۲-بیتی از موتور Flutter و libmpv وجود ندارد)؛ `aftab.dll` برای x64 و x86 در بستهٔ DLLهای هسته هست.
 
 </div>
 
@@ -90,7 +105,7 @@ flutter build apk            # APK (موبایل + تی‌وی)
 
 ## Aftab Media (English summary)
 
-Aftab Media is a ground-up, production-quality re-engineering of the [CCloud](https://github.com/code3-dev/CCloud) Android streaming app into a **cross-platform, Persian-first media platform** for Android, Android TV, and Windows. All data logic, Persian text normalization, search, provider failover, persistence, downloads, and URL safety live in a single **Rust core** (`aftab-core`) exposed through a stable **C-ABI FFI** boundary (`core/include/aftab.h`). Playback uses **libmpv** via `media_kit` on every platform, with a fully Material 3 cinematic player: user-styled libass subtitles (font, size, colors, outline, background, position, external files), complete playback settings (screen fit, zoom, speed, audio/subtitle sync, sleep timer, hardware decoding), and per-gesture touch controls (volume, brightness, scrub-seek, double-tap jump, hold-to-speed-up). The repository ships with full docs, an integration-tested provider (tested against a real local HTTP server), resumable downloads with HTTP `Range` support, atomic JSON persistence, SSRF protections for untrusted media URLs, and a GitHub Actions CI pipeline that builds and tests the core on Linux and Windows and analyzes/builds the Flutter app.
+Aftab Media is a ground-up, production-quality re-engineering of the [CCloud](https://github.com/code3-dev/CCloud) Android streaming app into a **cross-platform, Persian-first media platform** for Android, Android TV, and Windows. All data logic, Persian text normalization, search, provider failover, persistence, downloads, and URL safety live in a single **Rust core** (`aftab-core`) exposed through a stable **C-ABI FFI** boundary (`core/include/aftab.h`). Playback uses **libmpv** via `media_kit` on every platform, with a fully Material 3 cinematic player: user-styled libass subtitles (font, size, colors, outline, background, position, external files), complete playback settings (screen fit, zoom, speed, audio/subtitle sync, sleep timer, hardware decoding), and per-gesture touch controls (volume, brightness, scrub-seek, double-tap jump, hold-to-speed-up). The repository ships with full docs, an integration-tested provider (tested against a real local HTTP server), resumable downloads with HTTP `Range` support, atomic JSON persistence, SSRF protections for untrusted media URLs, and a GitHub Actions CI pipeline that builds and tests the core on Linux and Windows and analyzes/builds the Flutter app; every `v*` tag automatically publishes a release with per-ABI Android APKs and the Windows build.
 
 ### Repository layout
 
@@ -102,7 +117,21 @@ Aftab Media is a ground-up, production-quality re-engineering of the [CCloud](ht
 | `app/` | Flutter application (mobile, TV, and Windows entry points) |
 | `docs/` | Architecture, building, design system, player, provider API contract, legal notes |
 | `tools/` | Icon and test-media generation scripts |
-| `.github/workflows/ci.yml` | CI: core tests on Linux+Windows, FFI smoke test, Flutter analyze + build |
+| `.github/workflows/` | `ci.yml` — gates + builds on every push/PR; `release.yml` — automated release on every `v*` tag |
+
+### Downloads
+
+Latest release: [github.com/mewshiam/Aftab/releases](https://github.com/mewshiam/Aftab/releases)
+
+| Asset | For |
+|---|---|
+| `aftab-…-android-universal.apk` | every device (arm64 + arm32 + x64) |
+| `aftab-…-android-arm64-v8a.apk` | modern phones & Android TVs |
+| `aftab-…-android-armeabi-v7a.apk` | older 32-bit ARM phones |
+| `aftab-…-android-x86_64.apk` | Intel emulators & Chromebooks |
+| `aftab-…-windows-x64.zip` | 64-bit Windows |
+
+Releases are automated: pushing a `v*` tag runs `.github/workflows/release.yml`, which re-runs the full quality gates, builds every variant, and publishes the release with `SHA256SUMS.txt`. Android x86 (32-bit Intel) has no separate APK — the Flutter engine dropped it ([flutter#169884](https://github.com/flutter/flutter/pull/169884)) — but the x86 `libaftab.so` ships in the core jniLibs asset. The Windows app is x64-only (no 32-bit Flutter engine or libmpv exists); a 32-bit `aftab.dll` ships in the core DLLs asset for native embedders.
 
 ### License
 

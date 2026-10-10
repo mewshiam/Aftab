@@ -58,7 +58,7 @@ project as a cross-platform, Persian-first, open-source media platform.
 
 ---
 
-## [Unreleased] — بازطراحی کامل رابط کاربری (UI/UX)
+## [0.3.0] — ۲۰۲۶-۱۰-۱۰ — بازطراحی کامل رابط کاربری (UI/UX) و انتشار خودکار
 
 ### Added / افزوده شد
 - سیستم طراحی متمرکز: توکن‌های فاصله/شعاع/حرکت/نقاط شکست، پالت روشن + تیره + رنگ پویا (Material You)، تایپوگرافی وزیرمتن (OFL) با ارقام فارسی/لاتین بومی‌سازی‌شده.
@@ -80,6 +80,12 @@ project as a cross-platform, Persian-first, open-source media platform.
 - کش دیسک تصاویر با حذف قدیمی‌ترین‌ها (سقف ۴۰۹۶ فایل) و نمونه‌برداری کدک.
 - تشخیص واقعی Android TV از طریق کانال متد leanback + بازگشت ابطال‌شده کاربر.
 
+**مهندسی انتشار / Release engineering (۰.۳.۰)**
+- تنوع‌های ساخت اندروید: APK جداگانه برای arm64-v8a و armeabi-v7a و x86_64 (`--split-per-abi`) + APK «جهانی» (universal) با همهٔ معماری‌های پشتیبانی‌شده. x86 اندروید از سمت موتور Flutter حذف شده ([flutter#169884](https://github.com/flutter/flutter/pull/169884)) و APK جداگانهٔ آن قابل ساخت نیست؛ اما `libaftab.so` برای x86 در بستهٔ jniLibs هسته ارائه می‌شود.
+- ویندوز: اپ x64 + بستهٔ DLLهای هسته با `aftab.dll` برای x64 و x86 (i686) — اپ ۳۲-بیتی ویندوز به‌دلیل نبود نسخهٔ ۳۲-بیتی موتور Flutter و libmpv ممکن نیست.
+- گردش‌کار انتشار خودکار `.github/workflows/release.yml`: روی هر تگ `v*` دروازه‌های کامل کیفیت اجرا و همهٔ بسته‌ها ساخته و یک GitHub Release با `SHA256SUMS.txt` منتشر می‌شود؛ تکرارپذیر — اجرای دوباره، دارایی‌ها و یادداشت‌ها را بازنویسی می‌کند.
+- هستهٔ Rust به 0.2.0 رسید (افزودن `aftab_store_progress_all_json`).
+
 ### Changed / تغییر کرد
 - هسته: افزودن `aftab_store_progress_all_json` فقط-خواندنی (فید ادامهٔ تماشا) + `aftab_download_file` در بایندینگ‌های Dart؛ ۱۳۷ آزمون هسته (۱ آزمون جدید).
 - تشخیص تی‌وی از اکتشافی ۶۰۰dp به کانال leanback با آستانهٔ ۹۰۰dp تغییر کرد (تبلت‌ها رابط تی‌وی نمی‌گیرند).
@@ -88,6 +94,7 @@ project as a cross-platform, Persian-first, open-source media platform.
 - تست‌های UI با منابع جعلی: ۷۹ آزمون سبز (آنالیز `--fatal-infos` پاک) — ۳۱ آزمون جدید برای مدل استایل زیرنویس، نگاشت mpv، ژست‌ها و صفحه‌های تنظیمات جدید.
 
 ### Links
-[Unreleased]: https://github.com/mewshiam/Aftab/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/mewshiam/Aftab/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/mewshiam/Aftab/releases/tag/v0.3.0
 [0.1.0]: https://github.com/mewshiam/Aftab/releases/tag/v0.1.0
 
